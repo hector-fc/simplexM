@@ -1,57 +1,75 @@
+# Hector FC 
+# Algoritmo Simplex 
+
 import numpy as np 
-
-A = np.array([[2, 1, 2], 
-            [3, 3, 1]])  #  
-
-b = np.array([[4],[3]])
-c = np.array([4, 1, 1])
-indB = set(np.array([0,2]))    # base 
-
-def simplexMB(A,b,c, indB):    # def  da função  simplex  
-  n = len(c)                       
-  m = len(b)                     
-  iter = 0                     #   
+def simplexMB(A,b,c, indB): 
+  n = len(c)
+  m = len(b)  
+  iter = 0   
   while True:  
-    indN = set(range(n)) - indB 
-    indLB = list(indB)
-    indLN = list(indN)
-
-    matB  = A[:,indLB] 
+    indN =  [ind for ind in range(n)  if ind not in indB]    
+    matB  = A[:,indB] 
     xsol =  np.zeros((n,1))
-    xsol[indLB] =  np.linalg.solve(matB,b)
-    custoR = np.zeros(n)
-    base_c = c[indLB]   
-    Y = np.linalg.solve(matB,A[:,indLN])
-    custoR[indLN] = c[indLN] - np.dot(c[indLB],Y)
-
-    iS =  np.argmin(custoR)
-
+    xsol[indB] =  np.linalg.solve(matB,b)
+    custoR = np.zeros(n)        
+    Y = np.linalg.solve(matB,A[:,indN])
+    custoR[indN] = c[indN] - np.dot(c[indB],Y)        
+    iS =  np.argmin(custoR)      
     if custoR[iS] < 0:
       y = np.linalg.solve(matB,A[:,iS])        
-      delta = np.amax(y)        
+      delta = np.amax(y)                    
       if delta < 0:  
         print("O problema é ilimitado")
         break
-      else:
-        iR = np.where( xsol[indLB]/y>0 )           
-        indB = (indB - set(iR[0]) ) | set([iS])      
-      print("iteração: ",iter)
-      print(xsol)
-      valOpt = np.dot(xsol.T,c)    
-      print("valor na base: ",valOpt[0])
-      iter = iter + 1 
+      else:          
+        indy = np.where(y>0)        
+        it  = np.min(indy[0]) 
+        temp1 =  xsol[indB[it],0] / y[it]      
+        iR = min(indy[0])                                
+        for i in indy[0]:
+          temp2 = min(temp1, xsol[indB[i],0]/y[i])                                        
+          if temp2 <= temp1: 
+            iR = i 
+          temp1 = temp2                      
+        indB = set(indB).difference(set([ indB[iR]] ))        
+        indB = list(indB.union(set([iS])))        
+        iter = iter + 1        
     else:
-      print("iteração",iter)
-      print("Solução encontrada")
       valOpt = np.dot(xsol.T,c)
-      print(xsol)
       print("Valor otimo: ", valOpt[0])    
       break
-              
+    
     if iter > 5:    
       print("Numero de iterações permitido")
       break 
-  return [indB,xsol,valOpt] 
+  return [indB, xsol, valOpt] 
 
-solP = simplexMB(A,b,c,indB)
-print(solP[0])
+##################################
+ 
+def simplex2F(A,b,c):
+  n = len(c)
+  m = len(b)  
+  idN =  np.identity(m)  
+  matA = np.append(A,idN,axis=1)
+  vc = np.append(np.zeros(n),np.ones(m))
+  indB =[ i for i  in  range(m+1,n+m)] 
+  sol = simplexMB(matA,b,vc,indB)  
+  solLP = simplexMB(A,b,c,sol[0])  
+  return solLP
+    
+##################################
+
+A = np.array([[2, 1, 2], 
+              [3, 3, 1]])
+
+b = np.array([[4],[3]])
+c = np.array([4,1,1])
+
+sol = simplex2F(A,b,c)
+print(30*"*")
+print("Base: ", sol[0])
+print("Sol basica: ", sol[1])
+print("Valor otimo: ", sol[2][0])
+print(30*"*")
+
+
